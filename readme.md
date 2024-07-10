@@ -29,7 +29,7 @@ This project implements a question-answering system using FastAPI, leveraging a 
    uvicorn app.main:app --reload
    ```
 
-The API will be available at `http://localhost:8000`. You can access the Swagger UI documentation at `http://localhost:8000/docs`.
+The API will be available at `http://localhost:8000`. You can access the Swagger UI documentation at `http://localhost:8000/QA_System_API_DOCS`.
 
 ## Usage
 
