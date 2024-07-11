@@ -6,14 +6,11 @@ import uuid
 
 router = APIRouter()
 
-
 class QuestionRequest(BaseModel):
     question: str
 
-
 class AnswerResponse(BaseModel):
     answer: str
-
 
 @router.post("/ask", response_model=AnswerResponse)
 async def ask_question(
@@ -25,5 +22,5 @@ async def ask_question(
     if not x_session_id:
         x_session_id = str(uuid.uuid4())
 
-    answer = qa_service.get_answer(question_request.question)
+    answer = qa_service.get_answer(question_request.question, x_session_id)
     return AnswerResponse(answer=answer)

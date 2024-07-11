@@ -1,10 +1,13 @@
 import os
+import json
+from pathlib import Path
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain.vectorstores.pgvector import PGVector
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain.memory import ChatMessageHistory
+from langchain_core.messages import HumanMessage, AIMessage
 from langchain_core.runnables import RunnablePassthrough
 from app.core.config import settings
 
@@ -20,7 +23,8 @@ class QAService:
         self.question_answering_prompt = self._create_qa_prompt()
         self.document_chain = create_stuff_documents_chain(self.chat, self.question_answering_prompt)
         self.retrieval_chain = self._create_retrieval_chain()
-        self.chat_histories = {}  # Dictionary to store chat histories for different sessions
+        self.history_dir = Path("chat_histories")
+        self.history_dir.mkdir(exist_ok=True)
 
     def _initialize_vector_db(self):
         try:
@@ -58,18 +62,32 @@ class QAService:
             answer=self.document_chain,
         )
 
-    def get_answer(self, question: str) -> str:
-        chat_history = ChatMessageHistory()
+    def _load_chat_history(self, session_id: str):
+        file_path = self.history_dir / f"{session_id}.json"
+        if file_path.exists():
+            with open(file_path, "r") as f:
+                history_data = json.load(f)
+                chat_history = ChatMessageHistory()
+                for msg in history_data:
+                    if msg['type'] == 'human':
+                        chat_history.add_user_message(msg['content'])
+                    else:
+                        chat_history.add_ai_message(msg['content'])
+                return chat_history
+        return ChatMessageHistory()
 
-        """
-        Get an answer to a question using document retrieval and chat history.
+    def _save_chat_history(self, session_id: str, chat_history):
+        file_path = self.history_dir / f"{session_id}.json"
+        history_data = [
+            {"type": "human" if isinstance(msg, HumanMessage) else 'ai', "content": msg.content}
+            for msg in chat_history.messages
+        ]
+        with open(file_path, "w") as f:
+            json.dump(history_data, f)
 
-        Args:
-        question (str): The user's question.
+    def get_answer(self, question: str, session_id: str) -> str:
+        chat_history = self._load_chat_history(session_id)
 
-        Returns:
-        str: The AI's response.
-        """
         chat_history.add_user_message(question)
 
         response = self.retrieval_chain.invoke({
@@ -78,5 +96,7 @@ class QAService:
 
         answer = response["answer"]
         chat_history.add_ai_message(answer)
+
+        self._save_chat_history(session_id, chat_history)
 
         return answer
