@@ -5,6 +5,9 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: str
     POSTGRES_URI: str
     COLLECTION_NAME: str
+    MONGO_URI: str
+    MONGO_DB_NAME: str
+    MONGO_COLLECTION_NAME: str
 
     class Config:
         env_file = ".env"

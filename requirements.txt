@@ -10,3 +10,4 @@ pgvector
 psycopg2-binary
 openai
 langchain_openai
+pymongo
